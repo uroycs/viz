@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+
+<script src="https://d3js.org/d3.v4.js"></script>
+
+
+<div id="dataviz"></div>
+
+
+
+<script>
+
+
+var margin = {top: 30, right: 300, bottom: 60, left: 60},
+    width = 850 - margin.left - margin.right,
+    height = 460 - margin.top - margin.bottom;
+
+
+var svg = d3.select("#dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+//Read the data
+d3.csv("https://raw.githubusercontent.com/uroycs/viz/master/games.csv", function(data) {
+
+
+
+  var bisect = d3.bisector(function(d) { return d.year; }).left;
+
+  
+  var focus = svg
+    .append('g')
+    .append('circle')
+      .style("fill", "none")
+      .attr("stroke", "black")
+      .attr('r', 8.5)
+      .style("opacity", 0)
+
+  
+  var focusText = svg
+    .append('g')
+    .append('text')
+      .style("opacity", 0)
+      .attr("text-anchor", "left")
+      .attr("alignment-baseline", "middle")
+	  
+	//Create Title 
+    svg.append("text")
+    .attr("x", width / 2 )
+    .attr("y", 0)
+    .style("text-anchor", "middle")
+    .text("Yearly New Video Games");
+	
+	var x = d3.scaleLinear()
+      .domain([1980,2016])
+      .range([ 0, width ]);
+    svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+	svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("x", width - 220)
+    .attr("y", height + margin.top + 20)
+    .text("Year");
+	
+    // Add Y axis
+	  var y = d3.scaleLinear()
+      .domain( [0,1450])
+      .range([ height, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+	svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("transform", "rotate(-90)")
+    .attr("y", -margin.left+20)
+    .attr("x", -margin.top-120)
+    .text("Games Count");
+	
+	
+    // Add the line
+    svg.append("path")
+      .datum(data)
+      .attr("fill", "none")
+      .attr("stroke", "blue")
+      .attr("stroke-width", 1.5)
+      .attr("d", d3.line()
+        .x(function(d) { return x(d.year) })
+        .y(function(d) { return y(d.game_count) })
+        )
+
+	svg
+    .append('rect')
+    .style("fill", "none")
+    .style("pointer-events", "all")
+    .attr('width', width)
+    .attr('height', height)
+    .on('mouseover', mouseover)
+    .on('mousemove', mousemove)
+    .on('mouseout', mouseout);
+
+
+  
+  function mouseover() {
+    focus.style("opacity", 1)
+    focusText.style("opacity",1)
+  }
+
+  function mousemove() {
+    
+    var x0 = x.invert(d3.mouse(this)[0]);
+    var i = bisect(data, x0, 1);
+    selectedData = data[i]
+    focus
+      .attr("cx", x(selectedData.year))
+      .attr("cy", y(selectedData.game_count))
+    focusText
+      .html("Year:" + selectedData.year + "  -  " + "Games:" + selectedData.game_count)
+      .attr("x", x(selectedData.year))
+      .attr("y", y(selectedData.game_count))
+    }
+  function mouseout() {
+    focus.style("opacity", 0)
+    focusText.style("opacity", 0)
+  }
+  
+})
+
+</script>

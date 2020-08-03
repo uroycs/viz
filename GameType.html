@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+
+<script src="https://d3js.org/d3.v4.js"></script>
+
+
+<select id="selectButton"></select>
+
+
+<div id="dataviz"></div>
+
+<!-- Color Scale -->
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+
+
+<script>
+
+
+var margin = {top: 30, right: 300, bottom: 60, left: 60},
+    width = 850 - margin.left - margin.right,
+    height = 460 - margin.top - margin.bottom;
+
+	var gSelectedOption ="Action";
+
+var svg = d3.select("#dataviz")
+  .append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("transform",
+          "translate(" + margin.left + "," + margin.top + ")");
+
+//Read the data
+d3.csv("https://raw.githubusercontent.com/uroycs/viz/master/genre.csv", function(data) {
+
+
+    var allGroup = ["Action",	"Adventure",	"Fighting",	"Miscellaneous",	"Platform",	"Puzzle",	"Racing",	"Role-Playing",	"Shooter",	"Simulation",	"Sports",	"Strategy"]
+
+
+    d3.select("#selectButton")
+      .selectAll('myOptions')
+     	.data(allGroup)
+      .enter()
+    	.append('option')
+      .text(function (d) { return d; }) 
+      .attr("value", function (d) { return d; }) 
+
+    
+    var myColor = d3.scaleOrdinal()
+      .domain(allGroup)
+      .range(d3.schemeSet2);
+
+	  var bisect = d3.bisector(function(d) { return d.Year; }).left;
+
+  
+  var focus = svg
+    .append('g')
+    .append('circle')
+      .style("fill", "none")
+      .attr("stroke", "black")
+      .attr('r', 8.5)
+      .style("opacity", 0)
+
+  
+  var focusText = svg
+    .append('g')
+    .append('text')
+      .style("opacity", 0)
+      .attr("text-anchor", "left")
+      .attr("alignment-baseline", "middle")
+	
+	//Create Title 
+    svg.append("text")
+    .attr("x", width / 2 )
+    .attr("y", 0)
+    .style("text-anchor", "middle")
+    .text("Sales of video games category per year");  
+    
+    var x = d3.scaleLinear()
+      .domain([1980,2016])
+      .range([ 0, width ]);
+    svg.append("g")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(x));
+
+	svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("x", width - 220)
+    .attr("y", height + margin.top + 20)
+    .text("Year");
+    
+    var y = d3.scaleLinear()
+      .domain( [0,150])
+      .range([ height, 0 ]);
+    svg.append("g")
+      .call(d3.axisLeft(y));
+	svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("transform", "rotate(-90)")
+    .attr("y", -margin.left+20)
+    .attr("x", -margin.top-120)
+    .text("Million");
+    
+    var line = svg
+      .append('g')
+      .append("path")
+        .datum(data)
+        .attr("d", d3.line()
+          .x(function(d) { return x(+d.Year) })
+          .y(function(d) { return y(+d.Action) })
+        )
+        .attr("stroke", function(d){ return myColor("Action") })
+        .style("stroke-width", 4)
+        .style("fill", "none")
+
+    
+    function update(selectedGroup) {
+
+    
+      var dataFilter = data.map(function(d){return {Year: d.Year, value:d[selectedGroup]} })
+
+    
+      line
+          .datum(dataFilter)
+          .transition()
+          .duration(1000)
+          .attr("d", d3.line()
+            .x(function(d) { return x(+d.Year) })
+            .y(function(d) { return y(+d.value) })
+          )
+          .attr("stroke", function(d){ return myColor(selectedGroup) })
+    }
+
+    
+    d3.select("#selectButton").on("change", function(d) {
+            var selectedOption = d3.select(this).property("value");
+			gSelectedOption = selectedOption;
+            update(selectedOption)
+    })
+
+	svg
+    .append('rect')
+    .style("fill", "none")
+    .style("pointer-events", "all")
+    .attr('width', width)
+    .attr('height', height)
+    .on('mouseover', mouseover)
+    .on('mousemove', mousemove)
+    .on('mouseout', mouseout);
+
+
+  
+  function mouseover() {
+    focus.style("opacity", 1)
+    focusText.style("opacity",1)
+  }
+
+  function mousemove() {
+    
+    var x0 = x.invert(d3.mouse(this)[0]);
+    var i = bisect(data, x0, 1);
+    selectedData = data[i]
+    focus
+      .attr("cx", x(selectedData.Year))
+      .attr("cy", y(selectedData[gSelectedOption]))
+    focusText
+      .html(gSelectedOption+" : Year:" + selectedData.Year + "  -  " + "Sales:" + selectedData[gSelectedOption])
+      .attr("x", x(selectedData.Year))
+      .attr("y", y(selectedData[gSelectedOption]))
+    }
+  function mouseout() {
+    focus.style("opacity", 0)
+    focusText.style("opacity", 0)
+  }
+  
+})
+
+
+</script>
